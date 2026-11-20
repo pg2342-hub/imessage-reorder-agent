@@ -10,12 +10,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import json
+
 from .intents import classify
+from .linq import verify_webhook
 from .store import ORDER_CAP_CENTS, STORES, Store
 
 GUARDRAILS = {
     "stop_optout": "Stops all messages after STOP",
-    "dedupe_events": "Ignores a webhook Linq delivers twice",
+    "dedupe_events": "Handles a webhook Linq delivers twice only once",
     "verify_signature": "Rejects webhooks with a bad or stale signature",
     "handoff_changes": "Sends new items and changes to the usual to a person",
     "handoff_money": "Sends refunds, complaints and allergy questions to a person",
@@ -47,8 +50,18 @@ class Agent:
     log: list = field(default_factory=list)       # (kind, detail) for the eval
     handoffs: list = field(default_factory=list)  # (chat_id, reason)
     chat_phone: dict = field(default_factory=dict)
+    _current_event: str = ""
+    _n_sent: int = 0
 
-    # ------------------------------------------------------------------ entry point
+    # ------------------------------------------------------------------ entry points
+    def receive(self, headers: dict, raw_body: str, secret: str, now_s: float | None = None,
+                now_min: float = 0.0) -> int:
+        """What a webhook endpoint calls: verify the signature on the raw body, then handle.
+        Returns the HTTP status to answer Linq with."""
+        ok = verify_webhook(secret, headers, raw_body, now=now_s)
+        self.handle(json.loads(raw_body), now_min=now_min, signature_ok=ok)
+        return 200 if ok or not self.guards["verify_signature"] else 401
+
     def handle(self, event: dict, now_min: float = 0.0, signature_ok: bool = True) -> None:
         if not signature_ok and self.guards["verify_signature"]:
             self.log.append(("rejected", "bad signature"))
@@ -58,6 +71,7 @@ class Agent:
             self.log.append(("ignored", "duplicate event"))
             return
         self.seen_events.add(eid)
+        self._current_event, self._n_sent = eid, 0
         et = event["event_type"]
         if et == "message.received":
             self._on_text(event["data"], now_min)
@@ -74,12 +88,16 @@ class Agent:
             self.log.append(("suppressed", text))
             return
         self.linq.typing_start(chat_id)
-        self.linq.send(chat_id, [{"type": "text", "value": text}])
+        self.linq.send(chat_id, [{"type": "text", "value": text}],
+                       idempotency_key=f"{self._current_event}-{self._n_sent}")
+        self._n_sent += 1
         self.log.append(("said", text))
 
     def _link(self, chat_id: str, url: str) -> None:
         # link parts must be sent on their own (Linq docs, Sending Messages)
-        self.linq.send(chat_id, [{"type": "link", "value": url}])
+        self.linq.send(chat_id, [{"type": "link", "value": url}],
+                       idempotency_key=f"{self._current_event}-{self._n_sent}")
+        self._n_sent += 1
         self.log.append(("link", url))
 
     def _handoff(self, chat_id: str, reason: str, store_key: str | None) -> None:
@@ -224,6 +242,10 @@ class Agent:
             return
         chat_id = data["metadata"]["chat_id"]
         if et == "payment.succeeded":
+            # Linq gives a replayed webhook a new event_id, so also check the order's own state
+            if o.status != "awaiting_payment" and self.guards["dedupe_events"]:
+                self.log.append(("ignored", "order already paid"))
+                return
             o.status = "paid"
             self.log.append(("paid", o.id))
             self.store.send_to_kitchen(o)  # brand POS call; not idempotent, so dedupe matters

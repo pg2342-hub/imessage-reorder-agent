@@ -36,10 +36,13 @@ class LinqClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def _call(self, method: str, path: str, body: dict | None = None) -> dict:
+    def _call(self, method: str, path: str, body: dict | None = None,
+              idempotency_key: str | None = None) -> dict:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(self.base_url + path, data=data, method=method)
         req.add_header("Authorization", f"Bearer {self.token}")
+        if idempotency_key:
+            req.add_header("Idempotency-Key", idempotency_key)
         if data is not None:
             req.add_header("Content-Type", "application/json")
         try:
@@ -52,8 +55,11 @@ class LinqClient:
     def send_new(self, to: list[str], parts: list[dict]) -> dict:
         return self._call("POST", "/v3/messages", {"to": to, "message": {"parts": parts}})
 
-    def send(self, chat_id: str, parts: list[dict]) -> dict:
-        return self._call("POST", f"/v3/chats/{chat_id}/messages", {"message": {"parts": parts}})
+    def send(self, chat_id: str, parts: list[dict], idempotency_key: str | None = None) -> dict:
+        msg = {"parts": parts}
+        if idempotency_key:
+            msg["idempotency_key"] = idempotency_key  # a retried POST will not text twice
+        return self._call("POST", f"/v3/chats/{chat_id}/messages", {"message": msg})
 
     def typing_start(self, chat_id: str) -> None:
         self._call("POST", f"/v3/chats/{chat_id}/typing")
@@ -62,10 +68,11 @@ class LinqClient:
         self._call("DELETE", f"/v3/chats/{chat_id}/typing")
 
     def create_payment_request(self, amount_cents: int, description: str, metadata: dict) -> dict:
+        # keyed on the order id, so a retried POST cannot create a second checkout link
         return self._call("POST", "/v3/payment_requests", {
             "amount": amount_cents, "currency": "usd",
             "description": description, "metadata": metadata,
-        })
+        }, idempotency_key=f"pr-{metadata.get('order_id')}")
 
 
 class FakeLinq:
@@ -80,8 +87,8 @@ class FakeLinq:
         self.calls.append(("send_new", {"to": to, "parts": parts, "chat_id": chat_id}))
         return {"chat_id": chat_id, "created_new_chat": True, "service": "iMessage"}
 
-    def send(self, chat_id, parts):
-        self.calls.append(("send", {"chat_id": chat_id, "parts": parts}))
+    def send(self, chat_id, parts, idempotency_key=None):
+        self.calls.append(("send", {"chat_id": chat_id, "parts": parts, "key": idempotency_key}))
         return {"chat_id": chat_id, "message": {"id": str(uuid.uuid4()), "parts": parts}}
 
     def typing_start(self, chat_id):

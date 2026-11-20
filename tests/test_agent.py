@@ -33,7 +33,10 @@ class IntentTests(unittest.TestCase):
     def test_labels(self):
         cases = {"the usual": "reorder", "the usual but with oat milk": "modify", "STOP": "stop",
                  "👍": "confirm_yes", "I was charged twice": "refund", "where's my order": "status",
-                 "I'd like to try the cold brew": "new_item", "my drink was wrong": "complaint"}
+                 "I'd like to try the cold brew": "new_item", "my drink was wrong": "complaint",
+                 "the usual, iced": "modify", "usual, large please": "modify", "the usual at SoMa": "modify",
+                 "the usual x2": "modify", "stop texting me": "stop", "unsubscribe me": "stop",
+                 "yes please": "confirm_yes", "sure": "confirm_yes"}
         for text, want in cases.items():
             self.assertEqual(classify(text), want, text)
 
@@ -58,6 +61,37 @@ class AgentTests(unittest.TestCase):
     def test_no_order_without_yes(self):
         self.agent.handle(inbound_message("c1", MAYA, "the usual"))
         self.assertEqual(len(self.agent.store.orders), 0)
+
+
+class ReceiveTests(unittest.TestCase):
+    def test_bad_signature_is_rejected_and_ignored(self):
+        linq = FakeLinq()
+        agent = Agent(linq=linq, store=Store.sample())
+        ev = inbound_message("c1", MAYA, "the usual")
+        body = __import__("json").dumps(ev)
+        other = "whsec_" + base64.b64encode(os.urandom(24)).decode()
+        h = {"webhook-id": ev["event_id"], "webhook-timestamp": "1700000000",
+             "webhook-signature": sign_webhook(other, ev["event_id"], 1_700_000_000, body)}
+        self.assertEqual(agent.receive(h, body, SECRET, now_s=1_700_000_005), 401)
+        self.assertEqual(linq.calls, [])
+
+    def test_replayed_payment_with_new_event_id_reaches_kitchen_once(self):
+        from agent.linq import make_event
+        linq = FakeLinq()
+        agent = Agent(linq=linq, store=Store.sample())
+        agent.handle(inbound_message("c1", MAYA, "the usual"))
+        agent.handle(inbound_message("c1", MAYA, "yes"), now_min=1)
+        pr = next(iter(linq.payment_requests.values()))
+        for _ in range(2):  # two deliveries, two different event ids
+            agent.handle(make_event("payment.succeeded", {"id": pr["id"], "metadata": pr["metadata"]}))
+        self.assertEqual(len(agent.store.kitchen_tickets), 1)
+
+    def test_sends_carry_idempotency_keys(self):
+        linq = FakeLinq()
+        agent = Agent(linq=linq, store=Store.sample())
+        agent.handle(inbound_message("c1", MAYA, "the usual"))
+        keys = [c["key"] for n, c in linq.calls if n == "send"]
+        self.assertTrue(all(keys))
 
 
 class EvalTests(unittest.TestCase):

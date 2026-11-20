@@ -32,9 +32,9 @@ class SandboxLinq(LinqClient):
         self.payment_requests = {}
         self.sent = []
 
-    def send(self, chat_id, parts):
+    def send(self, chat_id, parts, idempotency_key=None):
         self.sent.append(parts)
-        return super().send(chat_id, parts)
+        return super().send(chat_id, parts, idempotency_key)
 
     def create_payment_request(self, amount_cents, description, metadata):
         pr_id = f"sim_{len(self.payment_requests) + 1}"
@@ -63,9 +63,9 @@ def main():
     seen = set()
     start = time.time()
     while time.time() - start < MAX_MIN * 60:
-        msgs = linq._call("GET", f"/v3/chats/{chat_id}/messages?order=asc&limit=100")
+        msgs = linq._call("GET", f"/v3/chats/{chat_id}/messages?limit=100")
         for m in msgs.get("messages", msgs.get("data", [])):
-            if m.get("direction") != "inbound" or m["id"] in seen:
+            if m.get("is_from_me") or m["id"] in seen:
                 continue
             seen.add(m["id"])
             text = " ".join(p.get("value", "") for p in m.get("parts", []) if p.get("type") == "text")

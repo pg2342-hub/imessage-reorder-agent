@@ -14,11 +14,11 @@ INTENTS = [
     "refund", "complaint", "allergy", "stop", "greeting", "unclear",
 ]
 
-_STOP = re.compile(r"^\s*(stop|unsubscribe|cancel all|end|quit|stopall)\s*[.!]*\s*$", re.I)
-_YES = re.compile(r"^\s*(y|yes|yep|yeah|yup|ok|okay|confirm|do it|sounds good|perfect|👍)\s*[.!]*\s*$", re.I)
+_STOP = re.compile(r"(^\s*(stop|end|quit|stopall|cancel all)\s*[.!]*\s*$)|\b(unsubscribe|opt ?out|stop (texting|messaging|sending))\b", re.I)
+_YES = re.compile(r"^\s*(y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|sounds good|perfect|👍)( please| thanks| thank you| pls)?\s*[.!]*\s*$", re.I)
 _NO = re.compile(r"^\s*(n|no|nope|nah|not now|never ?mind|cancel)\s*[.!]*\s*$", re.I)
 _REORDER = re.compile(r"\b(usual|same as (last time|always|before)|my regular|the regular|reorder|again)\b", re.I)
-_MODIFY = re.compile(r"\b(but|except|instead|with|without|extra|swap|change|no cream|oat|almond|decaf|bigger|smaller)\b", re.I)
+_MODIFY = re.compile(r"\b(but|except|instead|with|without|extra|swap|change|no cream|oat|almond|decaf|bigger|smaller|iced|hot|large|medium|small|at|for|x ?\d|\d ?x|two|three|double)\b", re.I)
 _STATUS = re.compile(r"\b(where('?s| is)|status|ready|eta|how long|done yet|is it)\b", re.I)
 _REFUND = re.compile(r"\b(refund|charged twice|double charged|overcharged|money back|charge)\b", re.I)
 _COMPLAINT = re.compile(r"\b(wrong|(?:was|is|came|arrived) cold|missing|terrible|bad|never got|didn'?t get|messed up|rude)\b", re.I)
