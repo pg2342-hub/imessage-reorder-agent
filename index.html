@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iMessage Reorder Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#000; --mute:#555; --line:#ddd; --soft:#f4f4f4; --bubble:#e9e9eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#fff; color:var(--ink); font:15px/1.5 Inter, system-ui, sans-serif; }
+  main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-0.01em; }
+  h2 { font-size:17px; margin:32px 0 10px; }
+  p { margin:8px 0; }
+  .sub { color:var(--mute); }
+  a { color:#000; }
+  .banner { border:2px solid #000; padding:14px 16px; margin:20px 0; display:flex; gap:24px; flex-wrap:wrap; align-items:baseline; }
+  .banner .big { font-size:28px; font-weight:700; }
+  .banner .crit { font-size:15px; }
+  .banner.bad { background:#000; color:#fff; }
+  ol.how { padding-left:20px; margin:6px 0; }
+  .guards { display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; }
+  @media (max-width:640px){ .guards { grid-template-columns:1fr; } }
+  .guards label { display:flex; gap:8px; align-items:flex-start; cursor:pointer; padding:6px 0; border-bottom:1px solid var(--line); }
+  .guards input { margin-top:4px; accent-color:#000; }
+  .btns { margin:10px 0; display:flex; gap:8px; flex-wrap:wrap; }
+  button { font:inherit; border:1px solid #000; background:#fff; padding:5px 12px; cursor:pointer; }
+  button:hover { background:#000; color:#fff; }
+  .group { margin-top:18px; font-weight:600; border-bottom:2px solid #000; padding-bottom:4px; }
+  details { border-bottom:1px solid var(--line); }
+  summary { list-style:none; cursor:pointer; padding:9px 0; display:flex; gap:12px; align-items:baseline; }
+  summary::-webkit-details-marker { display:none; }
+  .tag { font-weight:700; font-size:12px; min-width:44px; text-align:center; border:1px solid #000; padding:1px 6px; }
+  .tag.fail { background:#000; color:#fff; }
+  .why { color:var(--mute); font-size:13px; }
+  .chat { background:var(--soft); padding:14px; margin:4px 0 14px; display:flex; flex-direction:column; gap:6px; }
+  .chat .label { font-size:12px; color:var(--mute); text-transform:uppercase; letter-spacing:0.04em; margin-top:4px; }
+  .b { max-width:78%; padding:7px 12px; border-radius:16px; white-space:pre-wrap; word-wrap:break-word; }
+  .b.customer { align-self:flex-end; background:#000; color:#fff; }
+  .b.agent { align-self:flex-start; background:var(--bubble); }
+  .b.link { text-decoration:underline; }
+  .b.event { align-self:center; background:none; color:var(--mute); font-size:12px; padding:2px; }
+  .note { font-size:11px; opacity:0.75; display:block; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  td, th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  footer { margin-top:40px; color:var(--mute); font-size:13px; }
+  code { background:var(--soft); padding:1px 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>iMessage reorder agent, tested on 28 conversations</h1>
+  <p class="sub">A coffee chain member texts "the usual," confirms, pays with an Apple Pay link, and gets a text when it's ready. The agent is built on Linq's iMessage API (v3). Anything outside the saved usual goes to a person.</p>
+  <p class="sub">All menu items, prices, stores and customers here are sample data made up for the demo.</p>
+
+  <div id="banner" class="banner"><span class="big" id="score"></span><span class="crit" id="crit"></span></div>
+
+  <h2>How to read this page</h2>
+  <ol class="how">
+    <li>Each switch below is one rule the agent follows. All of them are on to start.</li>
+    <li>Turn a rule off to see which conversations break and why. The score above updates.</li>
+    <li>Open any conversation to read the texts. If it fails with your current switches, you also see what happens with every rule off.</li>
+  </ol>
+
+  <h2>Rules the agent follows</h2>
+  <div class="btns"><button id="allOn">Turn all on</button><button id="allOff">Turn all off</button></div>
+  <div class="guards" id="guards"></div>
+
+  <h2>The 28 conversations</h2>
+  <div id="cases"></div>
+
+  <h2>What the agent does on its own, and what goes to a person</h2>
+  <table>
+    <tr><th>On its own</th><th>Goes to a person</th><th>Never</th></tr>
+    <tr><td>Answers order status. Reorders the saved usual after a YES, sends the payment link, and texts when it's ready.</td>
+        <td>New items, changes to the usual, refunds, complaints, allergy questions, orders over $30, and a second unclear text.</td>
+        <td>Texts anyone who opted out, acts on a webhook with a bad signature, or sends the same order to the kitchen twice.</td></tr>
+  </table>
+  <p>Intent comes from a small keyword reader so these results are repeatable; a model can be plugged in with the same labels. Either way, the agent only ever orders the member's saved usual, after a YES, and its confirmation repeats the drink and the store, so a misread is visible before anyone pays.</p>
+
+  <h2>How it uses Linq</h2>
+  <p>The agent was written against Linq's public v3 docs and is tested here with a mock of the API; it has not yet run on a live Linq line. It starts a typing indicator before every reply and sends the payment link as its own link message. It verifies each webhook's signature (Standard Webhooks) on the raw body, handles a webhook delivered twice only once (by event id, and by order state for replays, which get a new event id), and puts an idempotency key on every send and payment request so a retried call cannot text twice. Payments go through <code>POST /v3/payment_requests</code>, and the order moves on only when the <code>payment.succeeded</code> webhook arrives.</p>
+
+  <footer>Code, eval and tests: <a href="https://github.com/pg2342-hub/imessage-reorder-agent">github.com/pg2342-hub/imessage-reorder-agent</a>. Run <code>python -m eval.run_eval --ablate</code> to reproduce this page's numbers.</footer>
+</main>
+<script>
+const WHY = {};
+let D;
+fetch("data.json").then(r => r.json()).then(d => { D = d; Object.assign(WHY, d.critical, d.major); build(); });
+
+function state() {
+  return D.names.map(n => document.getElementById("g-" + n).checked ? "1" : "0").join("");
+}
+function build() {
+  const g = document.getElementById("guards");
+  D.names.forEach(n => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" id="g-${n}" checked><span>${D.guardrails[n]}</span>`;
+    l.querySelector("input").addEventListener("change", render);
+    g.appendChild(l);
+  });
+  document.getElementById("allOn").onclick = () => { D.names.forEach(n => document.getElementById("g-" + n).checked = true); render(); };
+  document.getElementById("allOff").onclick = () => { D.names.forEach(n => document.getElementById("g-" + n).checked = false); render(); };
+  render();
+}
+function bubbles(tr) {
+  return tr.map(m => {
+    if (m.from === "system") return `<div class="b event">${esc(m.text)}</div>`;
+    const cls = m.from + (m.type === "link" ? " link" : "");
+    const note = m.note ? `<span class="note">${esc(m.note)}</span>` : "";
+    return `<div class="b ${cls}">${esc(m.text)}${note}</div>`;
+  }).join("");
+}
+function esc(s) { return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function render() {
+  const res = D.combos[state()];
+  const byId = Object.fromEntries(res.map(([id, f]) => [id, f]));
+  const passed = res.filter(([, f]) => f.length === 0).length;
+  const crit = res.filter(([, f]) => f.some(x => x in D.critical)).length;
+  document.getElementById("score").textContent = `${passed} of ${res.length} pass`;
+  document.getElementById("crit").textContent = crit === 0 ? "No critical failures" :
+    `${crit} conversation${crit > 1 ? "s" : ""} with a critical failure`;
+  document.getElementById("banner").className = "banner" + (crit ? " bad" : "");
+  const open = new Set([...document.querySelectorAll("details[open]")].map(d => d.dataset.id));
+  let html = "", group = "";
+  D.cases.forEach(c => {
+    if (c.group !== group) { group = c.group; html += `<div class="group">${group}</div>`; }
+    const f = byId[c.id];
+    const ok = f.length === 0;
+    const why = ok ? "" : f.map(x => WHY[x] + (x in D.critical ? " (critical)" : "")).join("; ");
+    const on = `<div class="label">With all rules on</div>` + bubbles(D.transcripts_on[c.id]);
+    const off = ok ? "" : `<div class="label">With every rule off</div>` + bubbles(D.transcripts_off[c.id]);
+    html += `<details data-id="${c.id}" ${open.has(String(c.id)) ? "open" : ""}><summary>
+      <span class="tag ${ok ? "" : "fail"}">${ok ? "PASS" : "FAIL"}</span>
+      <span>${esc(c.title)}<br><span class="why">${esc(why)}</span></span></summary>
+      <div class="chat">${on}${off}</div></details>`;
+  });
+  document.getElementById("cases").innerHTML = html;
+}
+</script>
+</body>
+</html>
