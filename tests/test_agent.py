@@ -35,7 +35,8 @@ class IntentTests(unittest.TestCase):
                  "👍": "confirm_yes", "I was charged twice": "refund", "where's my order": "status",
                  "I'd like to try the cold brew": "new_item", "my drink was wrong": "complaint",
                  "the usual, iced": "modify", "usual, large please": "modify", "the usual at SoMa": "modify",
-                 "the usual x2": "modify", "stop texting me": "stop", "unsubscribe me": "stop",
+                 "the usual x2": "modify", "stop texting me": "stop", "unsubscribe me": "stop", "please stop": "stop", "no stop": "stop",
+                 "stop please": "stop", "can you stop texting me": "stop",
                  "yes please": "confirm_yes", "sure": "confirm_yes"}
         for text, want in cases.items():
             self.assertEqual(classify(text), want, text)

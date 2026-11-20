@@ -14,7 +14,7 @@ INTENTS = [
     "refund", "complaint", "allergy", "stop", "greeting", "unclear",
 ]
 
-_STOP = re.compile(r"(^\s*(stop|end|quit|stopall|cancel all)\s*[.!]*\s*$)|\b(unsubscribe|opt ?out|stop (texting|messaging|sending))\b", re.I)
+_STOP = re.compile(r"(^\s*((please|pls|no|just|ok)[,!.]?\s+)?(stop|end|quit|stopall|cancel all)(\s+(please|pls|now|it))?\s*[.!]*\s*$)|\b(unsubscribe|opt ?out|stop (texting|messaging|sending))\b", re.I)
 _YES = re.compile(r"^\s*(y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|sounds good|perfect|👍)( please| thanks| thank you| pls)?\s*[.!]*\s*$", re.I)
 _NO = re.compile(r"^\s*(n|no|nope|nah|not now|never ?mind|cancel)\s*[.!]*\s*$", re.I)
 _REORDER = re.compile(r"\b(usual|same as (last time|always|before)|my regular|the regular|reorder|again)\b", re.I)
@@ -32,7 +32,7 @@ def classify(text: str, llm=None) -> str:
         label = llm(text)
         return label if label in INTENTS else "unclear"
     t = text.strip()
-    if _STOP.match(t):
+    if _STOP.search(t):
         return "stop"
     if _YES.match(t):
         return "confirm_yes"

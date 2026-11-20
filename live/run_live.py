@@ -62,7 +62,8 @@ def main():
     log = [{"t": time.time(), "from": "agent", "text": "(opener)", "service": first.get("service")}]
     seen = set()
     start = time.time()
-    while time.time() - start < MAX_MIN * 60:
+    finished = False
+    while not finished and time.time() - start < MAX_MIN * 60:
         msgs = linq._call("GET", f"/v3/chats/{chat_id}/messages?limit=100")
         for m in msgs.get("messages", msgs.get("data", [])):
             if m.get("is_from_me") or m["id"] in seen:
@@ -76,8 +77,10 @@ def main():
                 for p in parts:
                     log.append({"t": time.time(), "from": "agent", "type": p["type"], "text": p["value"]})
             if text.strip().lower() == "done":
+                finished = True  # ends the whole session, not just this batch
                 break
-        time.sleep(POLL_S)
+        if not finished:
+            time.sleep(POLL_S)
     with open("live/transcript.json", "w") as f:
         json.dump(log, f, indent=1, ensure_ascii=False)
     print(f"Saved {len(log)} lines to live/transcript.json")
