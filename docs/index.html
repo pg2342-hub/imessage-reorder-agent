@@ -1,55 +1,48 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- demo-chrome --><meta name="theme-color" content="#f4f2ec"><link rel="icon" href="https://pranavgudise.dev/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="https://pranavgudise.dev/kit/demo.css"><!-- /demo-chrome -->
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>iMessage Reorder Agent</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#000; --mute:#555; --line:#ddd; --soft:#f4f4f4; --bubble:#e9e9eb; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:#fff; color:var(--ink); font:15px/1.5 Inter, system-ui, sans-serif; }
-  main { max-width:880px; margin:0 auto; padding:32px 16px 64px; }
-  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-0.01em; }
-  h2 { font-size:17px; margin:32px 0 10px; }
-  p { margin:8px 0; }
-  .sub { color:var(--mute); }
-  a { color:#000; }
-  .banner { border:2px solid #000; padding:14px 16px; margin:20px 0; display:flex; gap:24px; flex-wrap:wrap; align-items:baseline; }
-  .banner .big { font-size:28px; font-weight:700; }
-  .banner .crit { font-size:15px; }
-  .banner.bad { background:#000; color:#fff; }
-  ol.how { padding-left:20px; margin:6px 0; }
-  .guards { display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; }
-  @media (max-width:640px){ .guards { grid-template-columns:1fr; } }
-  .guards label { display:flex; gap:8px; align-items:flex-start; cursor:pointer; padding:6px 0; border-bottom:1px solid var(--line); }
-  .guards input { margin-top:4px; accent-color:#000; }
-  .btns { margin:10px 0; display:flex; gap:8px; flex-wrap:wrap; }
-  button { font:inherit; border:1px solid #000; background:#fff; padding:5px 12px; cursor:pointer; }
-  button:hover { background:#000; color:#fff; }
-  .group { margin-top:18px; font-weight:600; border-bottom:2px solid #000; padding-bottom:4px; }
-  details { border-bottom:1px solid var(--line); }
-  summary { list-style:none; cursor:pointer; padding:9px 0; display:flex; gap:12px; align-items:baseline; }
-  summary::-webkit-details-marker { display:none; }
-  .tag { font-weight:700; font-size:12px; min-width:44px; text-align:center; border:1px solid #000; padding:1px 6px; }
-  .tag.fail { background:#000; color:#fff; }
-  .why { color:var(--mute); font-size:13px; }
-  .chat { background:var(--soft); padding:14px; margin:4px 0 14px; display:flex; flex-direction:column; gap:6px; }
-  .chat .label { font-size:12px; color:var(--mute); text-transform:uppercase; letter-spacing:0.04em; margin-top:4px; }
-  .b { max-width:78%; padding:7px 12px; border-radius:16px; white-space:pre-wrap; word-wrap:break-word; }
-  .b.customer { align-self:flex-end; background:#000; color:#fff; }
-  .b.agent { align-self:flex-start; background:var(--bubble); }
-  .b.link { text-decoration:underline; }
-  .b.event { align-self:center; background:none; color:var(--mute); font-size:12px; padding:2px; }
-  .note { font-size:11px; opacity:0.75; display:block; }
-  table { border-collapse:collapse; width:100%; font-size:14px; }
-  td, th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  footer { margin-top:40px; color:var(--mute); font-size:13px; }
-  code { background:var(--soft); padding:1px 4px; }
+main{padding-bottom:24px}
+p{margin:8px 0}
+.sub{color:var(--ink-2);max-width:46em}
+h1+.sub{font-size:18px}
+.banner{border-radius:16px;padding:20px 22px;margin:32px 0;display:flex;gap:24px;flex-wrap:wrap;align-items:baseline;background:var(--green-wash);color:var(--green)}
+.banner .big{font:400 34px/1.1 var(--serif)}
+.banner .crit{font-size:15px}
+.banner.bad{background:var(--ink);color:var(--paper)}
+ol.how{padding-left:20px;margin:6px 0;max-width:46em}
+.guards{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+@media (max-width:640px){.guards{grid-template-columns:1fr}}
+.guards label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:10px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.guards input{flex:none;margin-top:4px;accent-color:var(--green);width:17px;height:17px;min-height:0;padding:0}
+.btns{margin:12px 0;display:flex;gap:10px;flex-wrap:wrap}
+.group{margin-top:28px;font:400 12.5px/1.4 var(--mono);letter-spacing:.02em;color:var(--ink-2);border-bottom:1px solid var(--ink);padding-bottom:8px}
+summary{flex-wrap:wrap;column-gap:12px}
+.tag{display:inline-flex;align-items:center;justify-content:center;min-width:52px;min-height:24px;padding:0 10px;border-radius:999px;
+font:500 12px/1 var(--mono);letter-spacing:.03em;background:var(--green-wash);color:var(--green)}
+.tag.fail{background:var(--ink);color:var(--paper)}
+.why{color:var(--ink-2);font-size:13px}
+.chat{background:var(--tint-1);border-radius:16px;padding:16px;margin:10px 0 14px;display:flex;flex-direction:column;gap:8px}
+.chat .label{font:400 12px/1.4 var(--mono);color:var(--ink-2);letter-spacing:.02em;margin-top:4px}
+.b{max-width:78%;padding:8px 14px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;font-size:15px}
+.b.customer{align-self:flex-end;background:var(--green);color:#fff}
+.b.agent{align-self:flex-start;background:#fff}
+.b.link{text-decoration:underline}
+.b.event{align-self:center;background:none;color:var(--ink-2);font:400 12px/1.4 var(--mono);padding:2px}
+.note{font-size:11px;opacity:.75;display:block}
+table{margin:16px 0}
+code{background:rgb(27 26 23/.05);padding:1px 5px;border-radius:4px}
+main>footer{margin-top:56px;color:var(--ink-2);font-size:14px}
 </style>
 </head>
 <body>
+<!-- demo-chrome --><header class="demo-top"><a class="demo-brand" href="https://pranavgudise.dev/"><svg class="demo-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.25"/><g class="n"><path class="f" d="M15.5 8.5 L 13.4 13.4 L 8.5 15.5 L 10.6 10.6 Z"/></g><circle class="p" cx="12" cy="12" r=".7"/></svg><span>Pranav Gudise</span></a><a class="pill" href="https://github.com/pg2342-hub/imessage-reorder-agent">Code on GitHub</a></header><!-- /demo-chrome -->
+
 <main>
   <h1>iMessage reorder agent, tested on 28 conversations</h1>
   <p class="sub">A coffee chain member texts "the usual," confirms, pays with an Apple Pay link, and gets a text when it's ready. The agent is built on Linq's iMessage API (v3). Anything outside the saved usual goes to a person.</p>
@@ -140,5 +133,6 @@ function render() {
   document.getElementById("cases").innerHTML = html;
 }
 </script>
+<!-- demo-chrome --><footer class="demo-foot"><span>A working build by <a href="https://pranavgudise.dev/">Pranav Gudise</a>. Synthetic or public data only.</span><a href="https://github.com/pg2342-hub/imessage-reorder-agent">github.com/pg2342-hub/imessage-reorder-agent</a></footer><!-- /demo-chrome -->
 </body>
 </html>
